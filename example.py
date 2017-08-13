@@ -7,7 +7,7 @@ Example code for taking derivatives using the finite_diff library
 import random
 import numpy as np
 from math import pi
-from finite_diff import Derivative
+from finitediff import Derivative
 
 numvals = 40
 
@@ -27,9 +27,9 @@ dycos = diff.dydx(ycos)
 dysin = diff.dydx(ysin)
 
 # Take derivatives with boundary conditions
-diff.apply_boundary(x, 1)
+diff.apply_boundary(1)
 dycos2 = diff.dydx(ycos)
-diff.apply_boundary(x, -1)
+diff.apply_boundary(-1)
 dysin2 = diff.dydx(ysin)
 
 # How did we go?

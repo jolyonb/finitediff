@@ -5,7 +5,7 @@ Unit tests for finite_diff library
 """
 
 import unittest
-import finite_diff
+import finitediff
 import random
 from math import pi
 import numpy as np
@@ -19,7 +19,7 @@ class TestFiniteDiff(unittest.TestCase):
         self.x = np.sort(np.array([random.uniform(0.0, 2*pi) for i in range(numvals)]))
 
         # Create the differentiator on these x values
-        self.diff = finite_diff.Derivative(5)
+        self.diff = finitediff.Derivative(5)
         self.diff.set_x(self.x)
 
     def test_order(self):
@@ -42,7 +42,7 @@ class TestFiniteDiff(unittest.TestCase):
 
     def test_sin_odd(self):
         """Test a sine function with odd boundary conditions"""
-        self.diff.apply_boundary(self.x, -1)
+        self.diff.apply_boundary(-1)
         ysin = np.sin(self.x)
         dysin = self.diff.dydx(ysin)
         truevals = np.cos(self.x)
@@ -50,7 +50,7 @@ class TestFiniteDiff(unittest.TestCase):
 
     def test_cos_even(self):
         """Test a cosine function with even boundary conditions"""
-        self.diff.apply_boundary(self.x, 1)
+        self.diff.apply_boundary(1)
         ycos = np.cos(self.x)
         dycos = self.diff.dydx(ycos)
         truevals = -np.sin(self.x)
@@ -66,30 +66,78 @@ class TestFiniteDiff(unittest.TestCase):
         oldstencil = self.diff.stencil.copy()
         self.diff.set_x(self.x, 1)
         newstencil = self.diff.stencil.copy()
-        self.diff.apply_boundary(self.x, 0)
+        self.diff.apply_boundary(0)
 
         # Test converting to no boundary condition
         self.assertTrue(np.all(self.diff.stencil == oldstencil))
 
         # Test converting to even boundary condition
-        newdiff = finite_diff.Derivative(5)
+        newdiff = finitediff.Derivative(5)
         newdiff.set_x(self.x, 1)
         self.assertTrue(np.all(newdiff.stencil == newstencil))
 
         # Test converting to odd boundary condition
         self.diff.set_x(self.x, -1)
         newstencil = self.diff.stencil.copy()
-        newdiff = finite_diff.Derivative(5)
+        newdiff = finitediff.Derivative(5)
         newdiff.set_x(self.x, -1)
         self.assertTrue(np.all(newdiff.stencil == newstencil))
 
     def test_bad(self):
         """Make sure an error is raised appropriately"""
-        with self.assertRaises(finite_diff.DerivativeError):
+        with self.assertRaises(finitediff.DerivativeError):
             self.diff.set_x(np.array([0.0, 0.5, 1.0]))
 
-        with self.assertRaises(finite_diff.DerivativeError):
-            self.diff.apply_boundary(self.x[:-1])
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.apply_boundary()
+
+        with self.assertRaises(finitediff.DerivativeError):
+            test = finitediff.Derivative(5)
+            test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
+            test._xvals = np.array([1.0, 2.0, 3.0, 4.0])
+            test.apply_boundary()
+
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.dydx(np.array([1, 2, 3]))
+
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.leftdydx(np.array([1, 2, 3]))
+
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.rightdydx(np.array([1, 2, 3]))
+
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.position_dydx(np.array([1, 2, 3]), 1)
+
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.get_xvals()
+
+        with self.assertRaises(finitediff.DerivativeError):
+            test = finitediff.Derivative(5)
+            test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
+            test.dydx(np.array([1, 2, 3]))
+
+    def test_copy(self):
+        """Make sure things copy correctly"""
+        # Make sure we get references
+        xref = self.diff.get_xvals(False)
+        self.x[0] += 1
+        self.assertTrue(xref[0] == self.x[0])
+
+        # Make sure we get copies!
+        self.diff.set_x(self.x, copy=True)
+        x = self.diff.get_xvals(True)
+        xref = self.diff.get_xvals(False)
+        x[0] += 1
+        self.assertFalse(xref[0] == x[0])  # get_xvals returned a copy
+        xref[0] += 1
+        self.assertFalse(xref[0] == self.x[0])  # set_x stored a copy
 
     def test_positions(self):
         """Test that derivatives at all positions are correct"""
