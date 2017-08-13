@@ -48,7 +48,7 @@ class Derivative(object):
 
     def set_x(self, xvals, boundary=0, copy=False):
         """
-        Pass in an array of x values
+        Pass in a numpy vector of x values
         Computes the weights of a derivative operation for a given set of y
         Allows for different boundary conditions at x=0:
             -1 = odd
@@ -70,11 +70,14 @@ class Derivative(object):
             self._xvals = xvals
 
         # Initialize the stencil
-        if np.shape(self.stencil) == (length, length):
+        # The stencil is stored in a length * Number of points in stencil array
+        # so that we don't waste memory on storing zeros, and processing power
+        # multiplying things by zero
+        if np.shape(self.stencil) == (length, self._N):
             self.stencil.fill(0.0)
         else :
             # Make a new array
-            self.stencil = np.zeros([length, length])
+            self.stencil = np.zeros([length, self._N])
 
         # Do gridpoints on left side first
         self._apply_boundary(boundary, length)
@@ -85,13 +88,13 @@ class Derivative(object):
             # Note that rp is the index of the rightmost point + 1
             lp = i - self._leftpoints   # left point
             rp = lp + self._N           # right point
-            self._default_weights(i - lp, xvals[lp:rp], self.stencil[i, lp:rp])
+            self._default_weights(self._leftpoints, xvals[lp:rp], self.stencil[i])
 
         # Do gridpoints on right side last
         for i in range(length - self._N + self._leftpoints + 1, length):
             lp = length - self._N
             rp = length
-            self._default_weights(i - lp, xvals[lp:rp], self.stencil[i, lp:rp])
+            self._default_weights(i - lp, xvals[lp:rp], self.stencil[i])
 
     def apply_boundary(self, boundary=0):
         """
@@ -111,7 +114,7 @@ class Derivative(object):
             raise NoStencil("No stencil has been created yet")
         # Check that the stencil is the correct shape (internal consistency)
         length = len(self._xvals)
-        if np.shape(self.stencil) != (length, length):
+        if np.shape(self.stencil) != (length, self._N):
             raise DerivativeError("Stencil is wrong shape for these x values")
         # Apply the boundary condition
         self._apply_boundary(boundary, length)
@@ -131,28 +134,28 @@ class Derivative(object):
         if boundary == 0:
             # No boundary condition
             for i in range(self._leftpoints):
-                self._default_weights(i - lp, self._xvals[lp:rp], self.stencil[i, lp:rp])
+                self._default_weights(i, self._xvals[lp:rp], self.stencil[i])
         else:
             # Even/Odd
             for i in range(self._leftpoints):
-                self._boundary_weights(i - lp, self._xvals[lp:rp], self.stencil[i, lp:rp], boundary)
+                self._boundary_weights(i, self._xvals[lp:rp], self.stencil[i], boundary)
 
-    def _default_weights(self, i, xvals, stencil):
+    def _default_weights(self, i, xvals, stencilvec):
         """
         Compute the weights for a given grid point
         No fancy boundary conditions here
-        i is the point of interest
+        i is the point of interest inside stencilvec
         xvals is the slice of data used for the computation
-        stencil is where we will save the resulting weights
+        stencilvec is where we will save the resulting weights
 
-        Both xvals and stencil are vectors of length N
+        Both xvals and stencilvec are vectors of length N
         """
 
         for j in range(self._N):
             # We do the i case by adding together all the rest of the results
             # at the end of the computation
             if j == i :
-                stencil[j] = 0  # Don't pollute the sum that computes stencil[i]
+                stencilvec[j] = 0  # Don't pollute the sum that computes stencil[i]
                 continue
             # We compute l'_j(x_i)
             # Start with the denominator
@@ -170,21 +173,21 @@ class Derivative(object):
                     continue
                 num *= xdiff[b]
             # Compute the weight
-            stencil[j] = num / denom
+            stencilvec[j] = num / denom
 
         # Add the contribution to the ith component
-        stencil[i] = - np.sum(stencil)
+        stencilvec[i] = - np.sum(stencilvec)
 
-    def _boundary_weights(self, i, xvals, stencil, multiplier):
+    def _boundary_weights(self, i, xvals, stencilvec, multiplier):
         """
         Compute the weights for a given grid point using even/odd boundary
         conditions at the origin.
-        i is the point of interest
+        i is the point of interest inside stencilvec
         xvals is the slice of data used for the computation
         stencil is where we will save the resulting weights
         multiplier = +1 for even, -1 for odd
 
-        Both xvals and stencil are vectors of length N
+        Both xvals and stencilvec are vectors of length N
         """
 
         # How many points are off the end with an even/odd boundary?
@@ -194,7 +197,7 @@ class Derivative(object):
         # Construct a new i value for newxvals
         newi = i + delta
         # Make a new stencil placeholder
-        newstencil = np.zeros_like(stencil)
+        newstencil = np.zeros_like(stencilvec)
 
         # Construct the stencil for newi, newxvals, store in newstencil
         self._default_weights(newi, newxvals, newstencil)
@@ -205,13 +208,13 @@ class Derivative(object):
                 newstencil[i] *= -1
 
         # Reconstruct the stencil for the original xvals
-        stencil.fill(0.0)
+        stencilvec.fill(0.0)
         # Copy over the unflipped components
         for i in range(self._N - delta):
-            stencil[i] = newstencil[i + delta]
+            stencilvec[i] = newstencil[i + delta]
         # Now add in the flipped components
         for i in range(delta):
-            stencil[delta - i - 1] += newstencil[i]
+            stencilvec[delta - i - 1] += newstencil[i]
 
     def dydx(self, yvals):
         """
@@ -223,7 +226,29 @@ class Derivative(object):
             raise NoStencil("No stencil has been created yet")
         if len(self._xvals) != len(yvals):
             raise DerivativeError("xvals and yvals have different dimensions")
-        return np.dot(self.stencil, yvals)
+
+        # Now go and compute all of the derivatives from the stencil
+        length = len(self._xvals)
+        derivatives = np.zeros_like(yvals)
+
+        # The stencil starts at the very left
+        lp = 0
+        rp = self._N
+
+        # Loop over all indices and compute derivatives at each point
+        for pos in range(length):
+            # Compute the derivatives
+            derivatives[pos] = np.dot(self.stencil[pos], yvals[lp:rp])
+
+            # Update lp and rp for the next position
+            # Make sure that we are out of the left boundary
+            # Stop once we get into the right boundary
+            if pos >= self._leftpoints and rp < length:
+                lp += 1
+                rp += 1
+
+        # Return the result
+        return derivatives
 
     def leftdydx(self, yvals):
         """
@@ -233,7 +258,9 @@ class Derivative(object):
         """
         if self._xvals is None:
             raise NoStencil("No stencil has been created yet")
-        return np.dot(self.stencil[0], yvals)
+        if len(self._xvals) != len(yvals):
+            raise DerivativeError("xvals and yvals have different dimensions")
+        return self._get_dydx(yvals, 0)
 
     def rightdydx(self, yvals):
         """
@@ -243,7 +270,9 @@ class Derivative(object):
         """
         if self._xvals is None:
             raise NoStencil("No stencil has been created yet")
-        return np.dot(self.stencil[-1], yvals)
+        if len(self._xvals) != len(yvals):
+            raise DerivativeError("xvals and yvals have different dimensions")
+        return self._get_dydx(yvals, -1)
 
     def position_dydx(self, yvals, pos):
         """
@@ -253,7 +282,42 @@ class Derivative(object):
         """
         if self._xvals is None:
             raise NoStencil("No stencil has been created yet")
-        return np.dot(self.stencil[pos], yvals)
+        if len(self._xvals) != len(yvals):
+            raise DerivativeError("xvals and yvals have different dimensions")
+        return self._get_dydx(yvals, pos)
+
+    def _get_dydx(self, yvals, pos):
+        """
+        Internal routine to compute the derivative at a position based on the
+        current stencil and the given yvals at the index denoted by pos.
+        Assumes all error checking has been performed.
+        """
+        length = len(self._xvals)
+
+        # We need to compute which indices in yvals the stencil refers to
+        # Make sure pos is positive
+        if pos < 0:
+            usepos = pos + length
+        else:
+            usepos = pos
+        if usepos < 0 or usepos >= length:
+            raise IndexError("Index " + str(pos) + " is out of bounds for xvals")
+
+        # Starting at usepos, go left and right an appropriate number of steps
+        lp = usepos - self._leftpoints   # left point
+        rp = lp + self._N                # right point
+
+        # Make sure we're not off the end
+        if lp < 0:
+            lp = 0
+            rp = self._N
+        elif rp > length:
+            lp = length - self._N
+            rp = length
+
+        # Compute the derivative and return the result
+        stencil = self.stencil[pos]
+        return np.dot(stencil, yvals[lp:rp])
 
     def get_order(self):
         """Returns the order of the derivative"""

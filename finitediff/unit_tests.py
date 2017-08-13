@@ -85,19 +85,19 @@ class TestFiniteDiff(unittest.TestCase):
 
     def test_bad(self):
         """Make sure an error is raised appropriately"""
+        # Insufficient gridpoints for order
         with self.assertRaises(finitediff.DerivativeError):
             self.diff.set_x(np.array([0.0, 0.5, 1.0]))
 
-        with self.assertRaises(finitediff.NoStencil):
-            test = finitediff.Derivative(5)
-            test.apply_boundary()
-
+        # Something has gone very wrong - stencil and gridpoints are
+        # out of alignment
         with self.assertRaises(finitediff.DerivativeError):
             test = finitediff.Derivative(5)
             test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
             test._xvals = np.array([1.0, 2.0, 3.0, 4.0])
             test.apply_boundary()
 
+        # Various tests for no stencil
         with self.assertRaises(finitediff.NoStencil):
             test = finitediff.Derivative(5)
             test.dydx(np.array([1, 2, 3]))
@@ -118,10 +118,36 @@ class TestFiniteDiff(unittest.TestCase):
             test = finitediff.Derivative(5)
             test.get_xvals()
 
+        with self.assertRaises(finitediff.NoStencil):
+            test = finitediff.Derivative(5)
+            test.apply_boundary()
+
+        # xvals and yvals are out of alignment
         with self.assertRaises(finitediff.DerivativeError):
             test = finitediff.Derivative(5)
             test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
             test.dydx(np.array([1, 2, 3]))
+
+        with self.assertRaises(finitediff.DerivativeError):
+            test = finitediff.Derivative(5)
+            test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
+            test.leftdydx(np.array([1, 2, 3]))
+
+        with self.assertRaises(finitediff.DerivativeError):
+            test = finitediff.Derivative(5)
+            test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
+            test.rightdydx(np.array([1, 2, 3]))
+
+        with self.assertRaises(finitediff.DerivativeError):
+            test = finitediff.Derivative(5)
+            test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
+            test.position_dydx(np.array([1, 2, 3]), 3)
+
+        # Position out of bounds
+        with self.assertRaises(IndexError):
+            test = finitediff.Derivative(5)
+            test.set_x(np.array([1.0, 2, 3, 4, 5, 6]))
+            test.position_dydx(np.array([1, 2, 3, 4, 5, 6]), 7)
 
     def test_copy(self):
         """Make sure things copy correctly"""

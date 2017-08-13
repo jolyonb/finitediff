@@ -17,10 +17,3 @@ Written in Python 3 using numpy, but should also be compatible with Python 2.7.
 * finitediff: The library, example code and testing scripts
 * LICENSE: The MIT license under which this library is released
 * theory.pdf: A PDF file describing the theory by which the stencils are computed
-
-## Future updates
-
-* Make stencil storage smarter
-  * Change stencil storage array to N * length of x
-  * Change derivative computation
-  * Removes need for slicing when computing stencil
