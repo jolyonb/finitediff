@@ -130,23 +130,22 @@ class Derivative(object):
         lp = 0        # left point
         rp = self._N   # right point
 
-        # Which boundary condition will we use?
-        if boundary == 0:
-            # No boundary condition
-            for i in range(self._leftpoints):
-                self._default_weights(i, self._xvals[lp:rp], self.stencil[i])
-        else:
-            # Even/Odd
-            for i in range(self._leftpoints):
-                self._boundary_weights(i, self._xvals[lp:rp], self.stencil[i], boundary)
+        # Which function do we use?
+        fn = self._default_weights if boundary == 0 else self._boundary_weights
 
-    def _default_weights(self, i, xvals, stencilvec):
+        # Compute the weights
+        for i in range(self._leftpoints):
+            fn(i, self._xvals[lp:rp], self.stencil[i], multiplier=boundary)
+
+    def _default_weights(self, i, xvals, stencilvec, **kwargs):
         """
         Compute the weights for a given grid point
         No fancy boundary conditions here
         i is the point of interest inside stencilvec
         xvals is the slice of data used for the computation
         stencilvec is where we will save the resulting weights
+        **kwargs is here to allow this to receive a multiplier argument,
+        like _boundary_weights, but is not actually used
 
         Both xvals and stencilvec are vectors of length N
         """
@@ -233,19 +232,17 @@ class Derivative(object):
 
         # The stencil starts at the very left
         lp = 0
-        rp = self._N
 
         # Loop over all indices and compute derivatives at each point
         for pos in range(length):
             # Compute the derivatives
-            derivatives[pos] = np.dot(self.stencil[pos], yvals[lp:rp])
+            derivatives[pos] = np.dot(self.stencil[pos], yvals[lp:lp + self._N])
 
             # Update lp and rp for the next position
             # Make sure that we are out of the left boundary
             # Stop once we get into the right boundary
-            if pos >= self._leftpoints and rp < length:
+            if pos >= self._leftpoints and lp < length - self._N:
                 lp += 1
-                rp += 1
 
         # Return the result
         return derivatives

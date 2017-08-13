@@ -10,6 +10,8 @@ Even and odd boundary conditions about x=0 can also be specified, which increase
 
 When used with a uniform grid, the stencils are the same as usual finite-difference methods.
 
+The y values may even be matrix-valued. So long as the first index of yvals is the gridpoint, matrix derivatives will be computed correctly.
+
 Written in Python 3 using numpy, but should also be compatible with Python 2.7.
 
 ## Files

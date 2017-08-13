@@ -37,3 +37,10 @@ print("x", "Actual", "No boundary", "Boundary", "Error 1", "Error2")
 for i in range(numvals) :
     print(x[i], ycos[i], dysin[i], dysin2[i], dysin[i] - ycos[i], dysin2[i] - ycos[i])
     print(x[i], -ysin[i], dycos[i], dycos2[i], dycos[i] + ysin[i], dycos2[i] + ysin[i])
+
+# Construct a vector for y
+diff.apply_boundary(0)
+test = np.array([ysin, ycos]).transpose()
+truevals = np.array([ycos, -ysin]).transpose()
+dtest = diff.dydx(test)
+print("Vector-valued y test:", np.all(np.abs(dtest - truevals) < 0.005))
