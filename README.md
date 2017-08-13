@@ -19,3 +19,13 @@ Written in Python 3 using numpy, but should also be compatible with Python 2.7.
 * unit_tests.py: A set of unit tests on the library
 * runtests.sh: A script to run unit tests and measure coverage of those tests (uses [coverage.py](https://coverage.readthedocs.io/))
 * theory.pdf: A PDF file describing the theory by which the stencils are computed
+
+## Future updates
+
+* Make stencil storage smarter
+  * Change stencil storage array to N * length of x
+  * Change derivative computation
+  * Removes need for slicing when computing stencil
+* Save x values when computing a stencil
+  * Applying boundary conditions no longer needs x to be passed in
+  * Use a flag for copying values or referencing values
