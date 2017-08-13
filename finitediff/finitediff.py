@@ -34,7 +34,8 @@ class Derivative(object):
 
     def __init__(self, order):
         """
-        Sets the order of the finite difference code
+        Sets the order of the finite difference code and initializes storage
+        space for the stencil and x values
         """
         # Stores the number of grid points in a stencil
         self._N = order + 1
@@ -42,7 +43,7 @@ class Derivative(object):
         # If odd, uses more points to the right
         self._leftpoints = order // 2
         # Initialize a dummy stencil
-        self.stencil = np.array([[0.0]])
+        self._stencil = np.array([[0.0]])
         # Initialize storage for x values
         self._xvals = None
 
@@ -73,14 +74,14 @@ class Derivative(object):
         # The stencil is stored in a length * Number of points in stencil array
         # so that we don't waste memory on storing zeros, and processing power
         # multiplying things by zero
-        if np.shape(self.stencil) == (length, self._N):
-            self.stencil.fill(0.0)
+        if np.shape(self._stencil) == (length, self._N):
+            self._stencil.fill(0.0) # pylint: disable=no-member
         else :
             # Make a new array
-            self.stencil = np.zeros([length, self._N])
+            self._stencil = np.zeros([length, self._N])
 
         # Do gridpoints on left side first
-        self._apply_boundary(boundary, length)
+        self._apply_boundary(boundary)
 
         # Do gridpoints in middle next
         for i in range(self._leftpoints, length - self._N + self._leftpoints + 1):
@@ -88,13 +89,13 @@ class Derivative(object):
             # Note that rp is the index of the rightmost point + 1
             lp = i - self._leftpoints   # left point
             rp = lp + self._N           # right point
-            self._default_weights(self._leftpoints, xvals[lp:rp], self.stencil[i])
+            self._default_weights(self._leftpoints, xvals[lp:rp], self._stencil[i])
 
         # Do gridpoints on right side last
         for i in range(length - self._N + self._leftpoints + 1, length):
             lp = length - self._N
             rp = length
-            self._default_weights(i - lp, xvals[lp:rp], self.stencil[i])
+            self._default_weights(i - lp, xvals[lp:rp], self._stencil[i])
 
     def apply_boundary(self, boundary=0):
         """
@@ -113,21 +114,19 @@ class Derivative(object):
         if self._xvals is None:
             raise NoStencil("No stencil has been created yet")
         # Check that the stencil is the correct shape (internal consistency)
-        length = len(self._xvals)
-        if np.shape(self.stencil) != (length, self._N):
+        if np.shape(self._stencil) != (len(self._xvals), self._N):
             raise DerivativeError("Stencil is wrong shape for these x values")
         # Apply the boundary condition
-        self._apply_boundary(boundary, length)
+        self._apply_boundary(boundary)
 
-    def _apply_boundary(self, boundary, length):
+    def _apply_boundary(self, boundary):
         """
         Internal method for actually applying the boundary condition.
         Assumes error checking has been performed.
         boundary is as in apply_boundary
-        length is the length of self._xvals
         """
         # Go and update the stencils for the points on the left
-        lp = 0        # left point
+        lp = 0         # left point
         rp = self._N   # right point
 
         # Which function do we use?
@@ -135,11 +134,11 @@ class Derivative(object):
 
         # Compute the weights
         for i in range(self._leftpoints):
-            fn(i, self._xvals[lp:rp], self.stencil[i], multiplier=boundary)
+            fn(i, self._xvals[lp:rp], self._stencil[i], multiplier=boundary)
 
     def _default_weights(self, i, xvals, stencilvec, **kwargs):
         """
-        Compute the weights for a given grid point
+        Internal routine to compute the weights for a given grid point
         No fancy boundary conditions here
         i is the point of interest inside stencilvec
         xvals is the slice of data used for the computation
@@ -149,6 +148,7 @@ class Derivative(object):
 
         Both xvals and stencilvec are vectors of length N
         """
+        # pylint: disable=unused-argument
 
         for j in range(self._N):
             # We do the i case by adding together all the rest of the results
@@ -179,8 +179,8 @@ class Derivative(object):
 
     def _boundary_weights(self, i, xvals, stencilvec, multiplier):
         """
-        Compute the weights for a given grid point using even/odd boundary
-        conditions at the origin.
+        Internal routine to compute the weights for a given grid point using
+        even/odd boundary conditions at the origin.
         i is the point of interest inside stencilvec
         xvals is the slice of data used for the computation
         stencil is where we will save the resulting weights
@@ -229,14 +229,12 @@ class Derivative(object):
         # Now go and compute all of the derivatives from the stencil
         length = len(self._xvals)
         derivatives = np.zeros_like(yvals)
-
-        # The stencil starts at the very left
         lp = 0
 
         # Loop over all indices and compute derivatives at each point
         for pos in range(length):
             # Compute the derivatives
-            derivatives[pos] = np.dot(self.stencil[pos], yvals[lp:lp + self._N])
+            derivatives[pos] = np.dot(self._stencil[pos], yvals[lp:lp + self._N])
 
             # Update lp and rp for the next position
             # Make sure that we are out of the left boundary
@@ -313,7 +311,7 @@ class Derivative(object):
             rp = length
 
         # Compute the derivative and return the result
-        stencil = self.stencil[pos]
+        stencil = self._stencil[pos]
         return np.dot(stencil, yvals[lp:rp])
 
     def get_order(self):

@@ -5,13 +5,15 @@ Unit tests for finite_diff library
 """
 
 import unittest
-import finitediff
 import random
 from math import pi
 import numpy as np
+import finitediff
 
 class TestFiniteDiff(unittest.TestCase):
-    order = 4
+    """Unit test class for the finitediff library"""
+
+    order = 4   # Order of the derivatives
 
     def setUp(self):
         """Initialize a differentiator on a random grid"""
@@ -45,8 +47,10 @@ class TestFiniteDiff(unittest.TestCase):
         """Test a matrix function with no boundary conditions"""
         ysin = np.sin(self.x)
         ycos = np.cos(self.x)
+        # pylint: disable=no-member
         test = np.array([ysin, ycos]).transpose()
         truevals = np.array([ycos, -ysin]).transpose()
+        # pylint: enable=no-member
         dtest = self.diff.dydx(test)
         self.assertTrue(np.all(np.abs(dtest - truevals) < 0.005))
 
@@ -68,33 +72,35 @@ class TestFiniteDiff(unittest.TestCase):
 
     def compare_arrays(self, array1, array2):
         """Helper function to test equality of two arrays"""
-        for i in range(len(array1)):
+        for i, _ in enumerate(array1):
             self.assertAlmostEqual(array1[i], array2[i], delta=0.005)
 
     def test_conversion1(self):
         """Test converting boundary conditions"""
-        oldstencil = self.diff.stencil.copy()
+        # pylint: disable=protected-access
+        oldstencil = self.diff._stencil.copy()
         self.diff.set_x(self.x, 1)
-        newstencil = self.diff.stencil.copy()
+        newstencil = self.diff._stencil.copy()
         self.diff.apply_boundary(0)
 
         # Test converting to no boundary condition
-        self.assertTrue(np.all(self.diff.stencil == oldstencil))
+        self.assertTrue(np.all(self.diff._stencil == oldstencil))
 
         # Test converting to even boundary condition
         newdiff = finitediff.Derivative(TestFiniteDiff.order)
         newdiff.set_x(self.x, 1)
-        self.assertTrue(np.all(newdiff.stencil == newstencil))
+        self.assertTrue(np.all(newdiff._stencil == newstencil))
 
         # Test converting to odd boundary condition
         self.diff.set_x(self.x, -1)
-        newstencil = self.diff.stencil.copy()
+        newstencil = self.diff._stencil.copy()
         newdiff = finitediff.Derivative(TestFiniteDiff.order)
         newdiff.set_x(self.x, -1)
-        self.assertTrue(np.all(newdiff.stencil == newstencil))
+        self.assertTrue(np.all(newdiff._stencil == newstencil))
 
     def test_bad(self):
         """Make sure an error is raised appropriately"""
+        # pylint: disable=protected-access
         # Insufficient gridpoints for order
         with self.assertRaises(finitediff.DerivativeError):
             self.diff.set_x(np.array([0.0, 0.5, 1.0]))
@@ -161,6 +167,7 @@ class TestFiniteDiff(unittest.TestCase):
 
     def test_copy(self):
         """Make sure things copy correctly"""
+        # pylint: disable=protected-access
         # Make sure we get references
         xref = self.diff.get_xvals(False)
         self.x[0] += 1

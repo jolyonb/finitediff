@@ -5,8 +5,8 @@ Example code for taking derivatives using the finite_diff library
 """
 
 import random
-import numpy as np
 from math import pi
+import numpy as np
 from finitediff import Derivative
 
 numvals = 40
@@ -40,6 +40,7 @@ for i in range(numvals) :
 
 # Construct a vector for y
 diff.apply_boundary(0)
+# pylint: disable=no-member
 test = np.array([ysin, ycos]).transpose()
 truevals = np.array([ycos, -ysin]).transpose()
 dtest = diff.dydx(test)
