@@ -1,2 +1,5 @@
 [run]
 source = finitediff
+
+[report]
+omit = /finitediff/example.py
