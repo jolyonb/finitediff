@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/jolyonb/finitediff.svg?branch=master)](https://travis-ci.org/jolyonb/finitediff)
-
 # finitediff.py
+
+[![Build Status](https://travis-ci.org/jolyonb/finitediff.svg?branch=master)](https://travis-ci.org/jolyonb/finitediff) [![Coverage Status](https://coveralls.io/repos/github/jolyonb/finitediff/badge.svg?branch=master)](https://coveralls.io/github/jolyonb/finitediff?branch=master)
 
 Finite Difference library by Jolyon Bloomfield and Stephen Face, Copyright 2017
 
@@ -14,7 +14,7 @@ When used with a uniform grid, the stencils are the same as usual finite-differe
 
 The y values may even be matrix-valued. So long as the first index of yvals is the gridpoint, matrix derivatives will be computed correctly.
 
-Written in Python 3 using numpy, but should also be compatible with Python 2.7.
+Built using numpy. Tested with Python 2.7, 3.4, 3.5 and 3.6.
 
 ## Files
 
