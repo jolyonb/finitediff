@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jolyonb/finitediff.svg?branch=master)](https://travis-ci.org/jolyonb/finitediff)
+
 # finitediff.py
 
 Finite Difference library by Jolyon Bloomfield and Stephen Face, Copyright 2017
