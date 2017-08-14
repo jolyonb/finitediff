@@ -18,7 +18,7 @@ The y values may even be matrix-valued. So long as the first index of yvals is t
 
 ## Files
 
-* finitediff: The library, example code and testing scripts
+* finitediff: The library and testing scripts
 * LICENSE: The MIT license under which this library is released
 * theory.pdf: A PDF file describing the theory by which the stencils are computed
 * example.py: An example of using the library to compute derivatives

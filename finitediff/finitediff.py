@@ -3,7 +3,7 @@
 """
 Library to compute 1D finite difference derivatives on a non-uniform grid
 
-Released under the MIT License
+Released under the MIT License at https://github.com/jolyonb/finitediff
 
 Copyright 2017 Jolyon Bloomfield and Stephen Face
 """
