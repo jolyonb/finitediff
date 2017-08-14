@@ -52,7 +52,7 @@ class TestFiniteDiff(unittest.TestCase):
         truevals = np.array([ycos, -ysin]).transpose()
         # pylint: enable=no-member
         dtest = self.diff.dydx(test)
-        self.assertTrue(np.all(np.abs(dtest - truevals) < 0.005))
+        self.assertTrue(np.all(np.abs(dtest - truevals) < 0.01))
 
     def test_sin_odd(self):
         """Test a sine function with odd boundary conditions"""
@@ -73,7 +73,7 @@ class TestFiniteDiff(unittest.TestCase):
     def compare_arrays(self, array1, array2):
         """Helper function to test equality of two arrays"""
         for i, _ in enumerate(array1):
-            self.assertAlmostEqual(array1[i], array2[i], delta=0.005)
+            self.assertAlmostEqual(array1[i], array2[i], delta=0.01)
 
     def test_conversion1(self):
         """Test converting boundary conditions"""
