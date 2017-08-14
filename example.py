@@ -7,7 +7,7 @@ Example code for taking derivatives using the finite_diff library
 import random
 from math import pi
 import numpy as np
-from finitediff import Derivative
+from finitediff.finitediff import Derivative
 
 numvals = 40
 
